@@ -112,7 +112,7 @@ while True:
         if user != player and not game_over:
             if ai_turn:
                 time.sleep(0.5)
-                move = ttt.minimax(board)
+                move = ttt.minimax(board)[0]
                 board = ttt.result(board, move)
                 ai_turn = False
             else:
@@ -140,7 +140,7 @@ while True:
                 if againButton.collidepoint(mouse):
                     time.sleep(0.2)
                     user = None
-                    board = ttt.initial_state()
+                    board = ttt.Board()
                     ai_turn = False
 
     pygame.display.flip()
