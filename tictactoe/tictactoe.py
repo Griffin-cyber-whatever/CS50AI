@@ -49,7 +49,7 @@ def result(board, action):
     Returns the board that results from making move (i, j) on the board.
     """
     assert isinstance(board, Board)
-    print(action)
+
     state = [row[:] for row in board.state]
     opponent = player(board)
     if state[action[0]][action[1]] != EMPTY:
