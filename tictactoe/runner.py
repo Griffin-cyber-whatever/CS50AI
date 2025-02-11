@@ -90,7 +90,7 @@ while True:
             tiles.append(row)
 
         game_over = ttt.terminal(board)
-        player = ttt.player(board)
+        player = board.player
 
         # Show title
         if game_over:
@@ -112,7 +112,11 @@ while True:
         if user != player and not game_over:
             if ai_turn:
                 time.sleep(0.5)
+                print("Current board state before AI move:")
+                for row in board.state:
+                    print(row)
                 move = ttt.minimax(board)[0]
+                print(f"AI selected move: {move}")
                 board = ttt.result(board, move)
                 ai_turn = False
             else:

@@ -54,7 +54,7 @@ def result(board, action):
     opponent = player(board)
     if state[action[0]][action[1]] != EMPTY:
         raise Exception("invalid action")
-    state[action[0]][action[1]] = opponent
+    state[action[0]][action[1]] = board.player
     return Board(opponent, state, board, action)
         
 
@@ -111,7 +111,9 @@ def minimax(board):
         best_score = -math.inf
         best_move = None
         for action in actions(board):
+            print(f"Evaluating action {action} for player X")
             _, score = minimax(result(board, action))
+            print(f"Action {action} results in score {score} for player X")
             if score > best_score:
                 best_score = score
                 best_move = action
@@ -120,11 +122,15 @@ def minimax(board):
         best_score = math.inf
         best_move = None
         for action in actions(board):
+            print(f"Evaluating action {action} for player O")
             _, score = minimax(result(board, action))
+            print(f"Action {action} results in score {score} for player O")
             if score < best_score:
                 best_score = score
                 best_move = action
         return (best_move, best_score)
+
+# ...existing code...
 
 
 class Board:
