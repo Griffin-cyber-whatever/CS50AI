@@ -1,7 +1,9 @@
 import itertools
 import random
 
-
+# this project really takes me a lot of time to debbug
+# 1 pay attention to layer of each function's output list /set
+# 2 decrease the value of count when we find mine in it
 class Minesweeper():
     """
     Minesweeper game representation
@@ -105,27 +107,32 @@ class Sentence():
         """
         Returns the set of all cells in self.cells known to be mines.
         """
-        raise NotImplementedError
+        if len(self.cells) == self.count and self.count != 0:
+            return self.cells 
 
     def known_safes(self):
         """
         Returns the set of all cells in self.cells known to be safe.
         """
-        raise NotImplementedError
+        if self.count == 0 and self.cells :
+            return self.cells
 
     def mark_mine(self, cell):
         """
         Updates internal knowledge representation given the fact that
         a cell is known to be a mine.
         """
-        raise NotImplementedError
+        if cell in self.cells:
+            self.cells.remove(cell)
+            self.count -= 1
 
     def mark_safe(self, cell):
         """
         Updates internal knowledge representation given the fact that
         a cell is known to be safe.
         """
-        raise NotImplementedError
+        if cell in self.cells:
+            self.cells.remove(cell)
 
 
 class MinesweeperAI():
@@ -182,8 +189,42 @@ class MinesweeperAI():
             5) add any new sentences to the AI's knowledge base
                if they can be inferred from existing knowledge
         """
-        raise NotImplementedError
-
+        self.moves_made.add(cell)
+        self.mark_safe(cell)
+        
+        unmarked_neighbours = []
+        for i in range(-1, 2):
+            for j in range(-1, 2):
+                if (i, j) != (0, 0):
+                    current_cell = (i + cell[0], j + cell[1])
+                    if 0 <= current_cell[0] < self.height and 0 <= current_cell[1] < self.width:
+                        if current_cell in self.mines:
+                            self.mark_mine(current_cell)
+                            count -= 1
+                        elif current_cell in self.safes:
+                            self.mark_safe(current_cell)
+                        else:
+                            unmarked_neighbours.append(current_cell)
+        
+        self.knowledge.append(Sentence(unmarked_neighbours, count))
+        
+        # check if we can find new information after updating the original language base
+        new_mines = []
+        new_safes = []
+        for sentence in self.knowledge:
+            new_mines.append(sentence.known_mines())
+            new_safes.append(sentence.known_safes())
+        
+        new_mines = none_elment_remover(new_mines)
+        new_safes = none_elment_remover(new_safes)
+           
+        for i in new_mines:
+            self.mark_mine(i)
+        
+        for i in new_safes:
+            self.mark_safe(i)
+        
+ 
     def make_safe_move(self):
         """
         Returns a safe cell to choose on the Minesweeper board.
@@ -193,8 +234,12 @@ class MinesweeperAI():
         This function may use the knowledge in self.mines, self.safes
         and self.moves_made, but should not modify any of those values.
         """
-        raise NotImplementedError
+        for cell in self.safes:
+            if cell not in self.moves_made:
+                return cell
+        return None
 
+    
     def make_random_move(self):
         """
         Returns a move to make on the Minesweeper board.
@@ -202,4 +247,19 @@ class MinesweeperAI():
             1) have not already been chosen, and
             2) are not known to be mines
         """
-        raise NotImplementedError
+        if self.height * self.width > len(self.moves_made):
+            while True:
+                i = random.randrange(self.height)
+                j = random.randrange(self.width)
+                move = (i, j)
+                if move not in self.moves_made and move not in self.mines:
+                    return move
+        return None
+
+def none_elment_remover(list):
+    tmp = []
+    for i in list:
+        if i is not None:
+            for j in i:
+                tmp.append(j)
+    return tmp
