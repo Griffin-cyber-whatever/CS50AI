@@ -59,21 +59,15 @@ def transition_model(corpus, page, damping_factor):
     a link at random chosen from all pages in the corpus.
     """
     
-    output = {i: 0 for i in corpus}
+    output = {i: (1 - damping_factor) / len(corpus) for i in corpus}
     
     # if page has no outgoing links
     if len(corpus[page]) == 0:
-        length = len(corpus)
-        return  {i:1/length for i in corpus.keys()}
+        return {i: 1 / len(corpus) for i in corpus}
     
-    for page_name, linked_pages in corpus.items():
-        length = len(linked_pages)
-        if page_name == page:
-            for linked_page in linked_pages:
-                output[linked_page] += damping_factor/length
-        else:
-            for linked_page in linked_pages:
-                output[linked_page] += (1 - damping_factor)/length        
+    linked_pages = corpus[page]
+    for linked_page in linked_pages:
+        output[linked_page] += damping_factor / len(linked_pages)
     
     return output
 
@@ -89,15 +83,15 @@ def sample_pagerank(corpus, damping_factor, n):
     """
     
     initial_sample = random.choice(list(corpus.keys()))
-    sample_value = {i:0 for i in corpus.keys()}
-    previous_distribution = transition_model(corpus, initial_sample, damping_factor)
+    sample_value = {page:0 for page in corpus.keys()}
+    sample_value[initial_sample] += 1
     
-    # doing likelihood weighting on each sample
-    for _ in range(n):
-        weighting = previous_distribution[initial_sample]        
+    for _ in range(n-1):
         previous_distribution = transition_model(corpus, initial_sample, damping_factor)
-        initial_sample = max(previous_distribution, key=previous_distribution.get())
-        sample_value[initial_sample] += previous_distribution[initial_sample] * weighting
+        
+        initial_sample = random.choices(list(previous_distribution.keys()), weights=previous_distribution.values(), k=1)[0]
+        
+        sample_value[initial_sample] += 1
 
     return {page:distribution/n for page, distribution in sample_value.items()}
     
