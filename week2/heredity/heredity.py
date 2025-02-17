@@ -193,7 +193,7 @@ def update(probabilities, one_gene, two_genes, have_trait, p):
         gene = 2 if person in two_genes else 1 if person in one_gene else 0
         probabilities[person]["gene"][gene] += p
         # we need to update all people's trait and gene status
-        # P(some people have trait) = P(some people have trait ^ some people not have trait)
+        # because we have already calculate the probablity of some people dont have trait in p
         probabilities[person]["trait"][person in have_trait] += p
     
 
