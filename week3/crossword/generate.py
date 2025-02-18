@@ -167,11 +167,10 @@ class CrosswordCreator():
         Return True if `assignment` is complete (i.e., assigns a value to each
         crossword variable); return False otherwise.
         """
-        completed = True
         for var in self.domains.keys():
             if var not in assignment.keys() or not assignment[var]:
-                 completed = False
-        return completed
+                return False
+        return True
 
     
     def consistent(self, assignment):
@@ -258,21 +257,21 @@ class CrosswordCreator():
         if self.assignment_complete(assignment):
             return assignment
         var = self.select_unassigned_variable(assignment)
-        for value in self.order_domain_values(var, assignment):
-            assignment[var] = value
+        for value in self.order_domain_values(var, assignment): 
             if self.consistent(assignment):
                 original_domain = self.domains.copy()
                 original_assignment = assignment.copy()
+                
+                assignment[var] = value
                 
                 # inference based on the new assignment
                 inferences = self.inference(assignment)
                 if inferences != False:
                     for var in inferences:
-                        assignment[var] = inferences[var]
-                
-                backtrack_result = self.backtrack(assignment)
-                if backtrack_result:
-                    return backtrack_result
+                        assignment[var] = inferences[var]                
+                    backtrack_result = self.backtrack(assignment)
+                    if backtrack_result:
+                        return backtrack_result
                 # turn back to original state if this value is not valid
                 self.domains = original_domain
                 assignment = original_assignment
