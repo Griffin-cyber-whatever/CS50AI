@@ -99,9 +99,9 @@ class CrosswordCreator():
         (Remove any values that are inconsistent with a variable's unary
          constraints; in this case, the length of the word.)
         """
-        for varibale, words in self.domains.items():
-            variable_length = varibale.length
-            for word in words:
+        for variable, words in self.domains.items():
+            variable_length = variable.length
+            for word in words.copy():
                 if len(word) != variable_length:
                     words.remove(word)
                     
@@ -118,20 +118,26 @@ class CrosswordCreator():
         x_domain = self.domains[x]
         y_domain = self.domains[y]
         overlaps = self.crossword.overlaps[x, y]
-        revison_made = False
-        possible_candidate_in_y = False
+        revision_made = False
         
-        for x_value in x_domain:
+        # Check if there is an overlap between x and y
+        if overlaps is None:
+            return False
+    
+        for x_value in x_domain.copy():
+            possible_candidate_in_y = False
             overlaps_in_x = x_value[overlaps[0]]
             for y_value in y_domain:
-                if y_value[overlaps[1]] == overlaps_in_x:
+                overlaps_in_y = y_value[overlaps[1]]
+                if overlaps_in_y == overlaps_in_x:
                     possible_candidate_in_y = True
                     break
-            if possible_candidate_in_y == False:
+
+            if not possible_candidate_in_y:
+                revision_made = True
                 x_domain.remove(x_value)
-                revison_made = True
-            
-        return revison_made
+        
+        return revision_made
     
     
     def ac3(self, arcs=None):
@@ -143,22 +149,25 @@ class CrosswordCreator():
         return False if one or more domains end up empty.
         """
         queue = []
-        if not arcs:
+        # not [] -> True, [] is None -> False
+        if arcs is None:
             variables = list(self.domains.keys())
             for i in range(len(variables) - 1):
-                for j in range(i, len(variables), 1):
-                    queue.append(variables[i], variables[j])
+                for j in range(i + 1, len(variables)):
+                    if self.crossword.overlaps[variables[i], variables[j]] is not None:
+                        queue.append((variables[i], variables[j]))
+                        queue.append((variables[j], variables[i]))
         else:
             queue = arcs
         
         while len(queue) != 0:
-            arc = queue.pop(0)
-            if len(self.domains[arc[0]]) == 0:
-                return False
-            revision = self.revise(arc[0], arc[1])
-            if revision:
-                for neighbour in self.crossword.neighbors(arc[0]):
-                    queue.append(neighbour)
+            x, y = queue.pop(0)
+            if self.revise(x, y):
+                if not self.domains[x]:
+                    return False
+                for neighbor in self.crossword.neighbors(x):
+                    if neighbor != y:
+                        queue.append((neighbor, x))
 
         return True
 
@@ -184,13 +193,15 @@ class CrosswordCreator():
                 return False
             # check for same overlap
             for neighbour in self.crossword.neighbors(var):
-                neighbour_value = assignment[neighbour]
-                overlap = self.crossword.overlaps[var, neighbour]
-                if value[overlap[0]] != neighbour_value[overlap[1]]:
-                    return False
-        
-        # check for distinct value 
-        return len(assignment.values()) != len(set(assignment.values()))
+                if neighbour in assignment:
+                    overlap = self.crossword.overlaps[var, neighbour]
+                    if overlap is not None:
+                        i, j = overlap
+                        if value[i] != assignment[neighbour][j]:
+                            return False
+            
+        # check for distinct value
+        return len(assignment.values()) == len(set(assignment.values()))
 
     
     def order_domain_values(self, var, assignment):
@@ -231,19 +242,22 @@ class CrosswordCreator():
             return min_variables[0]
         
         # if there exist a tie, sort them with the highest degree
-        degree = {var: len(self.crossword.neighbours(var)) for var in min_variables}
+        degree = {var: len(self.crossword.neighbors(var)) for var in min_variables}
         return sorted(degree.keys(), key=lambda k: degree[k])[-1]
 
 
     def inference(self, assignment):
         """
-        Calling ac3() to test whether we can made new conclusion based on that new assginment
+        Calling ac3() to test whether we can made new conclusion based on that new assignment
         """
+        for var in assignment.keys():
+            # set(str) will return a set of char while {str} will return a set of word
+            self.domains[var] = {assignment[var]}
         ac3_result = self.ac3()
-        if ac3_result == False:
+        if not ac3_result:
             return False
-        return {variable:domain for variable, domain in self.domains.items() if variable not in assignment and len(domain) == 1}        
-    
+        # next(iter(iterable)) is a common method of getting the first element from an iterable
+        return {variable:next(iter(domain)) for variable, domain in self.domains.items() if variable not in assignment and len(domain) == 1}
     
     def backtrack(self, assignment):
         """
@@ -256,25 +270,20 @@ class CrosswordCreator():
         """
         if self.assignment_complete(assignment):
             return assignment
+        
         var = self.select_unassigned_variable(assignment)
         for value in self.order_domain_values(var, assignment): 
-            if self.consistent(assignment):
-                original_domain = self.domains.copy()
-                original_assignment = assignment.copy()
-                
-                assignment[var] = value
-                
-                # inference based on the new assignment
-                inferences = self.inference(assignment)
-                if inferences != False:
-                    for var in inferences:
-                        assignment[var] = inferences[var]                
-                    backtrack_result = self.backtrack(assignment)
-                    if backtrack_result:
-                        return backtrack_result
-                # turn back to original state if this value is not valid
-                self.domains = original_domain
-                assignment = original_assignment
+            new_assignment = assignment.copy()
+            original_domain = self.domains.copy()
+            new_assignment[var] = value
+            if self.consistent(new_assignment):
+                inferences = self.inference(new_assignment)
+                if inferences is not False:
+                    new_assignment.update(inferences)
+                    result = self.backtrack(new_assignment)
+                    if result is not None:
+                        return result
+            self.domains = original_domain
         return None
 
 
