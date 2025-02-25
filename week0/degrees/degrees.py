@@ -73,13 +73,15 @@ def main():
     if path is None:
         print("Not connected.")
     else:
-        degrees = len(path[0]) - 1
+        degrees = len(path)
         print(f"{degrees} degrees of separation.")
+        path = [(None, source)] + path
         for i in range(degrees):
-            person1 = path[0][i]
-            person2 = path[0][i + 1]
-            movie = movie_id_for_name(path[1][i])
-            print(f"{i + 1}: {people[person1]['name']} and {people[person2]['name']} starred in {movie}")
+            person1 = people[path[i][1]]["name"]
+            person2 = people[path[i + 1][1]]["name"]
+            movie = movies[path[i + 1][0]]["title"]
+            print(f"{i + 1}: {person1} and {person2} starred in {movie}")
+
 
 # source and target are already in the id form
 def shortest_path(source, target):
@@ -98,25 +100,22 @@ def shortest_path(source, target):
 
     while not queue.empty():
         node = queue.remove()
-        visited.add(node.id)
+        visited.add(node.state)
         
-        if node.id == target:
-            relative = []
-            related_movies = []
+        if node.state == target:
+            output = []
             while node.parent is not None:
-                relative[:0] = [node.id]
-                related_movies[:0] = [node.movie]
+                output.insert(0,(node.action, node.state))
                 node = node.parent
-            relative[:0] = [source]
-            return [relative, related_movies]                     
+            return output                  
         
-        for neighbour in neighbors_for_person(node.id):
+        for neighbour in neighbors_for_person(node.state):
             movie_id = neighbour[0]
             neighbour_id = neighbour[1]
-            if neighbour_id not in visited and not queue.contains_id(neighbour_id):
+            if neighbour_id not in visited and not queue.contains_state(neighbour_id):
                 queue.add(Node(neighbour_id, node, movie_id))
     
-    return None    
+    return None
     
 def person_id_for_name(name):
     """
